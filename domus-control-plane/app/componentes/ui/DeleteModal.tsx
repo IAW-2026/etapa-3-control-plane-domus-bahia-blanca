@@ -67,7 +67,7 @@ export function DeleteModal({
           </div>
           <div>
             <h3 className="font-bold text-domus-text">
-              {isActivate ? "Activar vendedor" : isDeactivate ? "Desactivar vendedor" : "Eliminar propiedad"}
+              {isActivate ? "Activar vendedor" : isDeactivate ? "Desactivar vendedor" : "Eliminar"}
             </h3>
             <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
               {description ??
@@ -93,8 +93,8 @@ export function DeleteModal({
           ) : (
             <>
               Se eliminará permanentemente{" "}
-              <span className="font-semibold text-domus-text">&quot;{title}&quot;</span>{" "}
-              junto con toda su multimedia y datos asociados.
+              <span className="font-semibold text-domus-text">&quot;{title}&quot;</span>.{" "}
+              Esta acción no se puede deshacer.
             </>
           )}
         </p>

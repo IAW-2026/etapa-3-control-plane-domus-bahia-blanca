@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import {
   Trash2, Phone, Mail, Home,
   Calendar, Search, X, User, UserCheck, UserX,
@@ -248,14 +249,16 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
         ))}
       </div>
 
-      {modalTarget && (
-        <DeleteModal
-          title={modalTarget.seller.fullName}
-          variant={modalTarget.variant}
-          onConfirm={handleModalConfirm}
-          onCancel={() => setModalTarget(null)}
-        />
-      )}
+      {modalTarget &&
+        createPortal(
+          <DeleteModal
+            title={modalTarget.seller.fullName}
+            variant={modalTarget.variant}
+            onConfirm={handleModalConfirm}
+            onCancel={() => setModalTarget(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   FilterX, Building2, CheckCircle2, Archive,
@@ -306,13 +307,15 @@ export default function PropiedadesPanel({
         defaultOpen={false}
       />
 
-      {deleteTarget && (
-        <DeleteModal
-          title={deleteTarget.title ?? "esta propiedad"}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+      {deleteTarget &&
+        createPortal(
+          <DeleteModal
+            title={deleteTarget.title ?? "esta propiedad"}
+            onConfirm={handleDeleteConfirm}
+            onCancel={() => setDeleteTarget(null)}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

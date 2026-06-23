@@ -17,6 +17,17 @@ export default async function VendedoresPage() {
     }
   }
 
+  function hasSellerRole(user: Awaited<ReturnType<typeof client.users.getUser>>): boolean {
+    const unsafeMd = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
+    const roles = unsafeMd.roles;
+    if (Array.isArray(roles)) return roles.some((r) => String(r).toLowerCase() === "seller");
+    const publicMd = user.publicMetadata as Record<string, unknown> | undefined;
+    const pubRoles = publicMd?.roles;
+    if (Array.isArray(pubRoles)) return pubRoles.some((r) => String(r).toLowerCase() === "seller");
+    if (typeof publicMd?.role === "string" && publicMd.role.toLowerCase() === "seller") return true;
+    return false;
+  }
+
   const client = await clerkClient();
   const imageMap: Record<string, string | null> = {};
   const activeMap: Record<string, boolean> = {};
@@ -25,7 +36,7 @@ export default async function VendedoresPage() {
       try {
         const user = await client.users.getUser(v.id);
         imageMap[v.id] = user.imageUrl;
-        activeMap[v.id] = user.publicMetadata?.role === "seller";
+        activeMap[v.id] = hasSellerRole(user);
       } catch {
         imageMap[v.id] = null;
         activeMap[v.id] = false;
