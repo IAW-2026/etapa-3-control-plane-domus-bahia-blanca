@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import {
   Trash2, Phone, Mail, Home,
   Calendar, Search, X, User, UserCheck, UserX,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { eliminarVendedorAction, desactivarVendedorAction, activarVendedorAction } from "@/app/acciones/vendedor.acciones";
 import { DeleteModal } from "@/app/componentes/ui/DeleteModal";
@@ -26,9 +27,12 @@ interface VendedorPanelProps {
   vendedores: VendedorRow[];
 }
 
+const PAGE_SIZE = 12;
+
 export default function VendedorPanel({ vendedores: initialVendedores }: VendedorPanelProps) {
   const [vendedores, setVendedores] = useState<VendedorRow[]>(initialVendedores);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [modalTarget, setModalTarget] = useState<{
     seller: VendedorRow;
     variant: "delete" | "deactivate" | "activate";
@@ -42,6 +46,10 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
       s.email.toLowerCase().includes(search.toLowerCase()) ||
       (s.agencyName ?? "").toLowerCase().includes(search.toLowerCase()),
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   function handleActivate(seller: VendedorRow) {
     setModalTarget({ seller, variant: "activate" });
@@ -114,7 +122,7 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
           type="text"
           placeholder="Buscar por nombre, email o agencia..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="input-base pl-9 pr-8 w-full"
         />
         {search && (
@@ -138,7 +146,7 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map((seller) => (
+        {paginated.map((seller) => (
           <div
             key={seller.id}
             className="card p-5 space-y-4 hover-lift animate-fade-up"
@@ -249,6 +257,14 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
         ))}
       </div>
 
+      {totalPages > 1 && (
+        <SellerPagination
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      )}
+
       {modalTarget &&
         createPortal(
           <DeleteModal
@@ -261,4 +277,98 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
         )}
     </div>
   );
+}
+
+function SellerPagination({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+}) {
+  const pages = buildPageRange(page, totalPages);
+
+  return (
+    <div
+      className="flex items-center justify-center gap-1.5 mt-2 pt-5 border-t"
+      style={{ borderColor: "var(--border)" }}
+    >
+      <button
+        type="button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150 disabled:opacity-30"
+        style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+        aria-label="Página anterior"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {pages.map((p, i) =>
+        p === "…" ? (
+          <span
+            key={`ellipsis-${i}`}
+            className="w-8 text-center text-xs"
+            style={{ color: "var(--text-muted)" }}
+          >
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onPageChange(p as number)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all duration-150"
+            style={{
+              background:
+                p === page ? "var(--primary-muted)" : "var(--bg-secondary)",
+              color:
+                p === page ? "var(--primary)" : "var(--text-secondary)",
+              border:
+                p === page
+                  ? "1.5px solid var(--primary-muted)"
+                  : "1.5px solid transparent",
+            }}
+          >
+            {p}
+          </button>
+        ),
+      )}
+
+      <button
+        type="button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-150 disabled:opacity-30"
+        style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+        aria-label="Página siguiente"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+
+      <span
+        className="ml-2 text-xs hidden sm:block"
+        style={{ color: "var(--text-muted)" }}
+      >
+        Página {page} de {totalPages}
+      </span>
+    </div>
+  );
+}
+
+function buildPageRange(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const result: (number | "…")[] = [];
+  const add = (n: number) => {
+    if (!result.includes(n)) result.push(n);
+  };
+  add(1);
+  if (current > 3) result.push("…");
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++)
+    add(p);
+  if (current < total - 2) result.push("…");
+  add(total);
+  return result;
 }

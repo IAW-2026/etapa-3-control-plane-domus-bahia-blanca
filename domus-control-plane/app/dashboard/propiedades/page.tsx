@@ -18,8 +18,7 @@ export default async function PropiedadesPage({
   if (params.search) sharedFilters.search = params.search;
   if (params.type) sharedFilters.type = params.type;
   if (params.operation) sharedFilters.operation = params.operation;
-  if (params.agencyName) sharedFilters.agencyName = params.agencyName;
-  if (params.addressSearch) sharedFilters.addressSearch = params.addressSearch;
+  if (params.location) sharedFilters.location = params.location;
   if (params.currency) sharedFilters.currency = params.currency;
   if (params.priceMin) sharedFilters.priceMin = params.priceMin;
   if (params.priceMax) sharedFilters.priceMax = params.priceMax;
