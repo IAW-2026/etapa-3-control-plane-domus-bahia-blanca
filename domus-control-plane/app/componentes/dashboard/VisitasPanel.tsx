@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { CalendarClock, Check, Filter, RotateCcw, Search, Trash2, X } from 'lucide-react'
+import { CalendarClock, Filter, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import {
-  actualizarEstadoMockAction,
   borrarVisitaAction,
   cancelarVisitaAction,
   getInmobiliariasAction,
@@ -152,6 +151,12 @@ export default function VisitasPanel() {
     )
   }
 
+  function replaceLocal(nextVisita: Visita) {
+    setVisitas((current) =>
+      current.map((visita) => (visita.id === nextVisita.id ? nextVisita : visita))
+    )
+  }
+
   function resolver(estadoDestino: 'PENDIENTE_AGENTE' | 'CONFIRMADO') {
     if (!selected) return
 
@@ -159,17 +164,7 @@ export default function VisitasPanel() {
       setError(null)
       setFeedback(null)
 
-      if (selected.estado !== 'PRE_ACEPTADO') {
-        const result = await actualizarEstadoMockAction({ turnoId: selected.id, estado: estadoDestino })
-        if (result.success) {
-          updateLocal(selected.id, estadoDestino)
-          setFeedback(result.message ?? 'Operacion mockeada.')
-        }
-        return
-      }
-
       const result = await resolverVisitaAction({
-        inmobiliariaId: selected.vendedorId,
         turnoId: selected.id,
         estado: estadoDestino,
       })
@@ -179,7 +174,11 @@ export default function VisitasPanel() {
         return
       }
 
-      updateLocal(selected.id, estadoDestino)
+      if (result.data) {
+        replaceLocal(result.data)
+      } else {
+        updateLocal(selected.id, estadoDestino)
+      }
       setFeedback('Visita actualizada correctamente.')
     })
   }
@@ -419,15 +418,6 @@ export default function VisitasPanel() {
               </dl>
 
               <div className="grid gap-2">
-                <button
-                  type="button"
-                  onClick={() => resolver('CONFIRMADO')}
-                  disabled={isPending || selected.estado === 'CONFIRMADO'}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-domus-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
-                >
-                  <Check className="h-4 w-4" />
-                  Confirmar
-                </button>
                 <button
                   type="button"
                   onClick={() => resolver('PENDIENTE_AGENTE')}

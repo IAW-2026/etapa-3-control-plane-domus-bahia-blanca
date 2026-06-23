@@ -1,7 +1,7 @@
 'use server'
 
 import {
-  borrarVisitaMock,
+  borrarVisita,
   cancelarVisita,
   fetchVisitas,
   resolverVisita,
@@ -50,12 +50,11 @@ export async function getVisitasAction(filters: VisitasFilters): Promise<ActionR
 }
 
 export async function resolverVisitaAction(data: {
-  inmobiliariaId: string
   turnoId: string
-  estado: 'PENDIENTE_AGENTE' | 'CONFIRMADO'
+  estado: EstadoTurno
 }): Promise<ActionResult<Visita | null>> {
   try {
-    const visita = await resolverVisita(data.inmobiliariaId, data.turnoId, data.estado)
+    const visita = await resolverVisita(data.turnoId, data.estado)
     return { success: true, data: visita }
   } catch (error) {
     return {
@@ -81,23 +80,17 @@ export async function cancelarVisitaAction(data: {
 }
 
 export async function borrarVisitaAction(turnoId: string): Promise<ActionResult<null>> {
-  await borrarVisitaMock(turnoId)
-  return {
-    success: true,
-    data: null,
-    mocked: true,
-    message: 'Borrado mockeado: falta implementar DELETE en Scheduling App.',
-  }
-}
-
-export async function actualizarEstadoMockAction(data: {
-  turnoId: string
-  estado: EstadoTurno
-}): Promise<ActionResult<{ turnoId: string; estado: EstadoTurno }>> {
-  return {
-    success: true,
-    data,
-    mocked: true,
-    message: 'Actualizacion mockeada: falta endpoint general de update en Scheduling App.',
+  try {
+    await borrarVisita(turnoId)
+    return {
+      success: true,
+      data: null,
+      message: 'Turno eliminado correctamente.',
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'No se pudo eliminar la visita',
+    }
   }
 }

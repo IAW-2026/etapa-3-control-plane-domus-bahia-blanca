@@ -67,6 +67,9 @@ function normalizeVisita(raw: unknown, sellersById = new Map<string, string>()):
       direccion?: string | null
       nombreInmobiliaria?: string | null
     }
+    agente?: {
+      nombreCompleto?: string | null
+    } | null
   }
 
   const vendedorId = item.vendedorId ?? 'sin-vendedor'
@@ -79,7 +82,7 @@ function normalizeVisita(raw: unknown, sellersById = new Map<string, string>()):
     nombreInmobiliaria: item.nombreInmobiliaria ?? item.propiedad?.nombreInmobiliaria ?? sellersById.get(vendedorId) ?? null,
     nombreComprador: item.nombreComprador ?? null,
     agenteId: item.agenteId ?? null,
-    agenteNombre: item.agenteNombre ?? null,
+    agenteNombre: item.agenteNombre ?? item.agente?.nombreCompleto ?? null,
     fechaHoraSolicitada: item.fechaHoraSolicitada ?? null,
     estado: item.estado ?? 'PENDIENTE_AGENTE',
     estadoComprador: item.estadoComprador ?? 'PENDIENTE',
@@ -124,6 +127,19 @@ async function schedulingFetch(path: string, init?: RequestInit) {
   })
 
   return parseJsonResponse(response, 'Scheduling API')
+}
+
+function unwrapApiData(payload: unknown) {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'success' in payload &&
+    'data' in payload
+  ) {
+    return (payload as { data: unknown }).data
+  }
+
+  return payload
 }
 
 function buildEstadoParams(estado?: EstadoTurno | '') {
@@ -197,15 +213,16 @@ export async function fetchVisitas(filters: VisitasFilters) {
   return { visitas, mocked: false }
 }
 
-export async function resolverVisita(inmobiliariaId: string, turnoId: string, estado: 'PENDIENTE_AGENTE' | 'CONFIRMADO') {
+export async function resolverVisita(turnoId: string, estado: EstadoTurno) {
   const vendedores = await getVendedores().catch(() => [])
   const vendedoresById = new Map(vendedores.map((vendedor) => [vendedor.id, sellerDisplayName(vendedor)]))
-  const payload = await schedulingFetch(`/api/turnos/inmobiliaria/${encodeURIComponent(inmobiliariaId)}`, {
+  const payload = await schedulingFetch(`/api/admin/turnos/${encodeURIComponent(turnoId)}`, {
     method: 'PATCH',
-    body: JSON.stringify({ turnoId, estado }),
+    body: JSON.stringify({ estado }),
   })
+  const data = unwrapApiData(payload)
 
-  return payload ? normalizeVisita(payload, vendedoresById) : null
+  return data ? normalizeVisita(data, vendedoresById) : null
 }
 
 export async function cancelarVisita(compradorId: string, turnoId: string) {
@@ -215,7 +232,8 @@ export async function cancelarVisita(compradorId: string, turnoId: string) {
   )
 }
 
-export async function borrarVisitaMock(turnoId: string) {
-  await Promise.resolve(turnoId)
-  return { mocked: true }
+export async function borrarVisita(turnoId: string) {
+  await schedulingFetch(`/api/admin/turnos/${encodeURIComponent(turnoId)}`, {
+    method: 'DELETE',
+  })
 }
