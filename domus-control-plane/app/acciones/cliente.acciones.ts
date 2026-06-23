@@ -2,13 +2,13 @@
 
 import { fetchClientsApi, toggleRoleApi, deleteUserApi } from "@/app/servicios/cliente.servicio";
 
-export async function getClientsAction(page: number = 1) {
+export async function getClientsAction(page: number = 1, search: string = "") {
   try {
-    const data = await fetchClientsApi(page);
+    const data = await fetchClientsApi(page, search);
     return { success: true, users: data.users, currentPage: data.currentPage, totalPages: data.totalPages };
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Error getClientsAction:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Error desconocido" };
+    return { success: false, error: error.message };
   }
 }
 
