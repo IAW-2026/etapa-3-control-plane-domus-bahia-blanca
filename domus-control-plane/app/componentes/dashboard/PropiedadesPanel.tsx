@@ -81,8 +81,7 @@ export default function PropiedadesPanel({
     if (filters.search) p.set("search", filters.search);
     if (filters.propertyType) p.set("type", filters.propertyType);
     if (filters.operationType) p.set("operation", filters.operationType);
-    if (filters.agencyName) p.set("agencyName", filters.agencyName);
-    if (filters.addressSearch) p.set("addressSearch", filters.addressSearch);
+    if (filters.addressSearch) p.set("location", filters.addressSearch);
     if (filters.currency) p.set("currency", filters.currency);
     if (filters.minPrice !== undefined) p.set("priceMin", String(filters.minPrice));
     if (filters.maxPrice !== undefined) p.set("priceMax", String(filters.maxPrice));
@@ -103,8 +102,7 @@ export default function PropiedadesPanel({
     if (filters.search) p.set("search", filters.search);
     if (filters.propertyType) p.set("type", filters.propertyType);
     if (filters.operationType) p.set("operation", filters.operationType);
-    if (filters.agencyName) p.set("agencyName", filters.agencyName);
-    if (filters.addressSearch) p.set("addressSearch", filters.addressSearch);
+    if (filters.addressSearch) p.set("location", filters.addressSearch);
     if (filters.currency) p.set("currency", filters.currency);
     if (filters.minPrice !== undefined) p.set("priceMin", String(filters.minPrice));
     if (filters.maxPrice !== undefined) p.set("priceMax", String(filters.maxPrice));
@@ -272,6 +270,7 @@ export default function PropiedadesPanel({
         onPageChange={(p) => goToPage("publishedPage", p)}
         onStatusChange={handleStatusChange}
         onDelete={(p) => setDeleteTarget(p)}
+        agencyFilter={filters.agencyName}
         defaultOpen
       />
 
@@ -288,6 +287,7 @@ export default function PropiedadesPanel({
         onPageChange={(p) => goToPage("draftPage", p)}
         onStatusChange={handleStatusChange}
         onDelete={(p) => setDeleteTarget(p)}
+        agencyFilter={filters.agencyName}
         defaultOpen
       />
 
@@ -304,6 +304,7 @@ export default function PropiedadesPanel({
         onPageChange={(p) => goToPage("archivedPage", p)}
         onStatusChange={handleStatusChange}
         onDelete={(p) => setDeleteTarget(p)}
+        agencyFilter={filters.agencyName}
         defaultOpen={false}
       />
 
@@ -336,6 +337,7 @@ interface PropertySectionProps {
   onStatusChange: (id: string, status: PropertyStatus) => void;
   onDelete: (property: PropertyCardDTO) => void;
   defaultOpen?: boolean;
+  agencyFilter?: string;
 }
 
 function PropertySection({
@@ -352,12 +354,25 @@ function PropertySection({
   onStatusChange,
   onDelete,
   defaultOpen = true,
+  agencyFilter,
 }: PropertySectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   const { data: properties, meta } = result;
-  const isFilterEmpty = hasFilters && properties.length === 0 && realTotal > 0;
+  const visibleProperties = agencyFilter
+    ? properties.filter(
+        (p) =>
+          p.seller?.agencyName
+            ?.toLowerCase()
+            .includes(agencyFilter.toLowerCase()),
+      )
+    : properties;
+  const isFilterEmpty =
+    hasFilters && visibleProperties.length === 0 && realTotal > 0;
   const isReallyEmpty = !hasFilters && meta.total === 0;
+  const displayCount = agencyFilter
+    ? `${visibleProperties.length} / ${meta.total}`
+    : String(meta.total);
 
   return (
     <section
@@ -390,7 +405,7 @@ function PropertySection({
             className="text-xs font-bold px-2.5 py-0.5 rounded-full"
             style={{ background: accentBg, color: accentColor }}
           >
-            {meta.total}
+            {displayCount}
           </span>
           {isFilterEmpty && (
             <span
@@ -457,9 +472,9 @@ function PropertySection({
             </div>
           )}
 
-          {properties.length > 0 && (
+          {visibleProperties.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {properties.map((p) => {
+              {visibleProperties.map((p) => {
                 const config = PROPERTY_STATUS_CONFIG[cardStatus] ?? {
                   dot: "#9ca3af",
                   label: cardStatus,
