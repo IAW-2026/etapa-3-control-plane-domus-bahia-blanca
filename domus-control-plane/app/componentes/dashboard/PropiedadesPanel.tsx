@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   FilterX, Building2, CheckCircle2, Archive,
-  ChevronDown, Minus, ChevronLeft, ChevronRight,
+  ChevronDown, Minus, ChevronLeft, ChevronRight, Loader2, AlertCircle,
 } from "lucide-react";
 import { BaseFilterBar, type BaseFilters } from "@/app/componentes/ui/BaseFilterBar";
 import { FilterSelect } from "@/app/componentes/ui/FilterSelect";
 import { BasePropertyCard } from "@/app/componentes/ui/BasePropertyCard";
 import { Toast } from "@/app/componentes/ui/Toast";
 import { DeleteModal } from "@/app/componentes/ui/DeleteModal";
-import { cambiarEstadoPropiedadAction, eliminarPropiedadAction } from "@/app/acciones/propiedades.acciones";
+import { cambiarEstadoPropiedadAction, eliminarPropiedadAction, getPropiedadesSeccionesAction } from "@/app/acciones/propiedades.acciones";
 import { PROPERTY_STATUS_CONFIG } from "@/app/lib/property-types";
 import type { PropertyCardDTO, PaginationMeta } from "@/app/servicios/propiedades.servicio";
 import type { PropertyStatus } from "@/app/servicios/propiedades.servicio";
@@ -20,13 +20,6 @@ import type { PropertyStatus } from "@/app/servicios/propiedades.servicio";
 interface SectionResult {
   data: PropertyCardDTO[];
   meta: PaginationMeta;
-}
-
-interface PropiedadesPanelProps {
-  publishedResult: SectionResult;
-  draftResult: SectionResult;
-  archivedResult: SectionResult;
-  totalCountByStatus: { published: number; draft: number; archived: number };
 }
 
 interface PropertyFilters extends BaseFilters {
@@ -45,26 +38,49 @@ function formatDate(iso: string | null | undefined) {
   });
 }
 
-export default function PropiedadesPanel({
-  publishedResult,
-  draftResult,
-  archivedResult,
-  totalCountByStatus,
-}: PropiedadesPanelProps) {
+export default function PropiedadesPanel() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [filters, setFilters] = useState<PropertyFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   const [showPublishToast, setShowPublishToast] = useState(false);
   const [showArchiveToast, setShowArchiveToast] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PropertyCardDTO | null>(null);
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== undefined && v !== "");
-  const totalFiltered =
-    publishedResult.meta.total + draftResult.meta.total + archivedResult.meta.total;
-  const totalAll =
-    totalCountByStatus.published +
-    totalCountByStatus.draft +
-    totalCountByStatus.archived;
+  const [publishedResult, setPublishedResult] = useState<SectionResult>({
+    data: [], meta: { total: 0, page: 1, pageSize: 12, totalPages: 0, hasNextPage: false, hasPrevPage: false },
+  });
+  const [draftResult, setDraftResult] = useState<SectionResult>({
+    data: [], meta: { total: 0, page: 1, pageSize: 12, totalPages: 0, hasNextPage: false, hasPrevPage: false },
+  });
+  const [archivedResult, setArchivedResult] = useState<SectionResult>({
+    data: [], meta: { total: 0, page: 1, pageSize: 12, totalPages: 0, hasNextPage: false, hasPrevPage: false },
+  });
+  const [totalCountByStatus, setTotalCountByStatus] = useState({
+    published: 0, draft: 0, archived: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setFetchError(null);
+    const params: Record<string, string> = {};
+    searchParams.forEach((v, k) => { params[k] = v; });
+
+    getPropiedadesSeccionesAction(params).then((res) => {
+      if (res.error) {
+        setFetchError(res.error);
+      } else {
+        setPublishedResult(res.publishedResult);
+        setDraftResult(res.draftResult);
+        setArchivedResult(res.archivedResult);
+        setTotalCountByStatus(res.totalCountByStatus);
+      }
+      setLoading(false);
+    });
+  }, [searchParams]);
 
   const triggerPublishToast = useCallback(() => {
     setShowPublishToast(true);
@@ -75,6 +91,48 @@ export default function PropiedadesPanel({
     setShowArchiveToast(true);
     setTimeout(() => setShowArchiveToast(false), 3500);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="w-full h-64 flex flex-col items-center justify-center rounded-2xl border border-domus-secondary mt-8"
+        style={{ background: "var(--bg-card)" }}
+      >
+        <Loader2 className="w-8 h-8 text-domus-primary animate-spin mb-4" />
+        <p className="text-domus-textSoft font-medium" style={{ color: "var(--text-secondary)" }}>
+          Cargando propiedades...
+        </p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="w-full p-6 flex flex-col items-center justify-center rounded-2xl border mt-8"
+        style={{
+          background: "rgba(239,68,68,0.05)",
+          borderColor: "rgba(239,68,68,0.2)",
+        }}
+      >
+        <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+        <h3 className="text-lg font-bold text-red-700">Error de conexión</h3>
+        <p className="text-red-600 text-center mt-1">{fetchError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
+  const hasActiveFilters = Object.values(filters).some((v) => v !== undefined && v !== "");
+  const totalFiltered =
+    publishedResult.meta.total + draftResult.meta.total + archivedResult.meta.total;
+  const totalAll =
+    totalCountByStatus.published +
+    totalCountByStatus.draft +
+    totalCountByStatus.archived;
 
   function buildParams(overrides: Record<string, string | undefined> = {}) {
     const p = new URLSearchParams();

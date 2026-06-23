@@ -1,36 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import {
   Trash2, Phone, Mail, Home,
   Calendar, Search, X, User, UserCheck, UserX,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Loader2, AlertCircle,
 } from "lucide-react";
-import { eliminarVendedorAction, desactivarVendedorAction, activarVendedorAction } from "@/app/acciones/vendedor.acciones";
+import { eliminarVendedorAction, desactivarVendedorAction, activarVendedorAction, getVendedoresFullAction } from "@/app/acciones/vendedor.acciones";
 import { DeleteModal } from "@/app/componentes/ui/DeleteModal";
-
-export interface VendedorRow {
-  id: string;
-  fullName: string;
-  email: string;
-  agencyName: string | null;
-  contactPhone: string | null;
-  imageUrl: string | null;
-  propertyCount: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface VendedorPanelProps {
-  vendedores: VendedorRow[];
-}
+import type { VendedorRow } from "@/app/acciones/vendedor.acciones";
 
 const PAGE_SIZE = 12;
 
-export default function VendedorPanel({ vendedores: initialVendedores }: VendedorPanelProps) {
-  const [vendedores, setVendedores] = useState<VendedorRow[]>(initialVendedores);
+export default function VendedorPanel() {
+  const [vendedores, setVendedores] = useState<VendedorRow[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [modalTarget, setModalTarget] = useState<{
@@ -39,6 +23,56 @@ export default function VendedorPanel({ vendedores: initialVendedores }: Vendedo
   } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    setFetchError(null);
+    startTransition(async () => {
+      const res = await getVendedoresFullAction();
+      if (res.error) {
+        setFetchError(res.error);
+      } else {
+        setVendedores(res.vendedores);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading && vendedores.length === 0) {
+    return (
+      <div className="w-full h-64 flex flex-col items-center justify-center rounded-2xl border border-domus-secondary mt-8"
+        style={{ background: "var(--bg-card)" }}
+      >
+        <Loader2 className="w-8 h-8 text-domus-primary animate-spin mb-4" />
+        <p className="text-domus-textSoft font-medium" style={{ color: "var(--text-secondary)" }}>
+          Cargando vendedores...
+        </p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="w-full p-6 flex flex-col items-center justify-center rounded-2xl border mt-8"
+        style={{
+          background: "rgba(239,68,68,0.05)",
+          borderColor: "rgba(239,68,68,0.2)",
+        }}
+      >
+        <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
+        <h3 className="text-lg font-bold text-red-700">Error de conexión</h3>
+        <p className="text-red-600 text-center mt-1">{fetchError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   const filtered = vendedores.filter(
     (s) =>
