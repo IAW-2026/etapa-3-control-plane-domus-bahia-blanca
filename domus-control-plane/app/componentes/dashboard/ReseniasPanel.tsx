@@ -1,7 +1,8 @@
 "use client";
 
+import { getAllPropiedadesParaMapaAction } from "@/app/acciones/propiedades.acciones";
 import { useEffect, useState } from "react";
-import { Search, Eye, Trash2 } from "lucide-react";
+import { Search, Trash2, MessageSquareOff } from "lucide-react";
 import {
   getFeedbackDashboardData,
   deleteReviewAction,
@@ -13,19 +14,25 @@ export default function ReseniasPanel() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
+  const [propertyMap, setPropertyMap] = useState<Record<string, string>>({});
+  
   useEffect(() => {
-    async function load() {
-      const result = await getFeedbackDashboardData();
-      if (result.success && result.data) {
-        setStats(result.data.stats);
-        setReviews(result.data.reviews);
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
+  async function load() {
+    const [feedbackResult, propertyMap] = await Promise.all([
+      getFeedbackDashboardData(),
+      getAllPropiedadesParaMapaAction(),
+    ]);
 
+    if (feedbackResult.success && feedbackResult.data) {
+      setStats(feedbackResult.data.stats);
+      setReviews(feedbackResult.data.reviews);
+    }
+
+    setPropertyMap(propertyMap);
+    setLoading(false);
+  }
+  load();
+}, []);
   async function handleDeleteReview(id: string) {
     if (!confirm("¿Eliminar esta reseña?")) return;
     const result = await deleteReviewAction(id);
@@ -140,7 +147,7 @@ export default function ReseniasPanel() {
                     {review.authorName ?? "Anónimo"}
                   </td>
 
-                  <td className="p-4">{review.targetId}</td>
+                  <td className="p-4">{propertyMap[review.targetId] ?? review.targetId}</td>
 
                   <td className="p-4">⭐ {review.rating}</td>
 
@@ -166,11 +173,11 @@ export default function ReseniasPanel() {
 
                       {review.response && (
                         <button
-                          className="btn btn-danger px-3 py-2"
-                          title="Eliminar respuesta"
+                          className="px-3 py-2 rounded-xl border border-domus-secondary text-domus-textSoft hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600 transition"
+                          title="Eliminar respuesta del vendedor"
                           onClick={() => handleDeleteResponse(review.id, review.response.id)}
                         >
-                          <Trash2 size={14} />
+                          <MessageSquareOff size={16} />
                         </button>
                       )}
                     </div>

@@ -81,3 +81,17 @@ export async function eliminarPropiedadAction(
     return { ok: false, error: "No se pudo eliminar la propiedad" };
   }
 }
+
+export async function getAllPropiedadesParaMapaAction(): Promise<Record<string, string>> {
+  try {
+    const { data } = await getPropiedades({});
+    const map: Record<string, string> = {};
+    data.forEach((p) => {
+      map[p.id] = p.title ?? p.address ?? "Propiedad sin nombre";
+    });
+    return map;
+  } catch (error) {
+    console.error("Error armando mapa de propiedades:", error);
+    return {};
+  }
+}
