@@ -10,6 +10,10 @@ Panel administrativo centralizado (Etapa 3): gestión unificada de todas las app
 
 Deploy: <https://etapa-3-control-plane-domus-bahia-bla.vercel.app>
 
+* **Usuario Administrador (Admin):**
+  * **Email:** `admin+clerk_test@iaw.com`
+  * **Contraseña:** `iawuser#`
+
 ## Paneles del sistema
 
 - **Vendedores** — Lista de vendedores inmobiliarios. Muestra nombre, email, agencia y teléfono. Permite activar, desactivar o eliminar vendedores.
