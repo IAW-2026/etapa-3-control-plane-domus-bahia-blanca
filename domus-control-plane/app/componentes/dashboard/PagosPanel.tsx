@@ -6,6 +6,7 @@ import { obtenerSuscripciones, actualizarEstadoSuscripcion } from '@/app/accione
 interface Suscripcion {
   id: string;
   vendedor_id: string;
+  vendedor_nombre?: string;
   estado: 'ACTIVA' | 'PENDIENTE_PAGO' | 'INACTIVA' | 'VENCIDA';
   plan_nombre: string;
   limite_publicaciones: number;
@@ -26,7 +27,6 @@ function EstadoSelector({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Cierra el menú si el usuario hace clic afuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -52,7 +52,6 @@ function EstadoSelector({
   const labelActual = opciones.find(o => o.valor === estadoActual)?.label || estadoActual;
   return (
     <div className="relative inline-block w-full max-w-[160px]" ref={dropdownRef}>
-      {/* Botón Principal */}
       <button
         type="button"
         disabled={disabled}
@@ -62,13 +61,11 @@ function EstadoSelector({
         }`}
       >
         <span>{labelActual}</span>
-        {/* Flecha que gira al abrir */}
         <svg className={`fill-current h-4 w-4 text-[var(--color-domus-primaryMid)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
           <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
         </svg>
       </button>
 
-      {/* El Menú Desplegable Personalizado */}
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full bg-[var(--color-domus-card)] border border-[var(--color-domus-secondary)] rounded-xl shadow-lg overflow-hidden animate-fade-in">
           <div className="flex flex-col py-1">
@@ -79,8 +76,8 @@ function EstadoSelector({
                 onClick={() => handleSelect(opcion.valor)}
                 className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors ${
                   estadoActual === opcion.valor
-                    ? 'bg-[var(--color-domus-primarySoft)] text-white' // Color activo Domus
-                    : 'text-[var(--color-domus-text)] hover:bg-[var(--color-domus-bg)] hover:text-[var(--color-domus-primary)]' // Hover suave
+                    ? 'bg-[var(--color-domus-primarySoft)] text-white' 
+                    : 'text-[var(--color-domus-text)] hover:bg-[var(--color-domus-bg)] hover:text-[var(--color-domus-primary)]' 
                 }`}
               >
                 {opcion.label}
@@ -177,7 +174,7 @@ export default function PagosPanel() {
                     
                     {/* VENDEDOR */}
                     <td className="px-6 py-4 font-mono text-[10px] text-[var(--color-domus-textSoft)] max-w-[120px] truncate" title={sub.vendedor_id}>
-                      {sub.vendedor_id}
+                      {sub.vendedor_nombre || sub.vendedor_id}
                     </td>
 
                     {/* PLAN */}

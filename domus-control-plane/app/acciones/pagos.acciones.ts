@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { clerkClient } from '@clerk/nextjs/server';
 
 const PAYMENTS_URL = process.env.NEXT_PUBLIC_PAYMENTS_URL || 'http://localhost:3000';
 const API_KEY = process.env.PAYMENT_API_KEY as string;
@@ -19,7 +20,32 @@ export async function obtenerSuscripciones() {
     });
 
     if (!response.ok) throw new Error('Fallo al obtener las suscripciones');
-    return await response.json();
+    
+    const suscripciones = await response.json();
+    const vendedoresIdsUnicos = Array.from(new Set(suscripciones.map((s: any) => s.vendedor_id))) as string[];
+    const nombresVendedores = new Map<string, string>();
+
+    if (vendedoresIdsUnicos.length > 0) {
+      const client = await clerkClient(); 
+      const usuariosClerk = await client.users.getUserList({
+        userId: vendedoresIdsUnicos,
+      });
+
+      usuariosClerk.data.forEach(user => {
+        const nombreCompleto = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        nombresVendedores.set(
+          user.id, 
+          nombreCompleto || user.emailAddresses[0]?.emailAddress || user.id
+        );
+      });
+    }
+    
+    const suscripcionesConNombres = suscripciones.map((sub: any) => ({
+      ...sub,
+      vendedor_nombre: nombresVendedores.get(sub.vendedor_id) || sub.vendedor_id
+    }));
+
+    return suscripcionesConNombres;
   } catch (error) {
     console.error('Error en Server Action (GET):', error);
     return null;
